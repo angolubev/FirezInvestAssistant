@@ -1,0 +1,79 @@
+.navbar {
+  background-color: blue;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 270px;
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-header {
+  background-color: green;
+  z-index: 30;
+  width: 100%;
+  height: 44px;
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.navbar-content {
+  background-color: pink;
+  width: 100%;
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.navbar-footer {
+  background-color: yellow;
+  width: 100%;
+  height: 44px;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.navbar-footer-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: row;
+  display: flex;
+  background-color: chartreuse;
+}
+
+.navbar-footer-button-wrapper {
+  background-color: blue;
+  align-items: center;
+  display: flex;
+  position: relative;
+  min-width: 50px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.navbar-icon {
+  position: relative;
+  color: aliceblue;
+  background-color: black;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.navbar-footer-middle {
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-width: 50px;
+  background-color: blueviolet;
+}
