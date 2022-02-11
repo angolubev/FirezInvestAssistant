@@ -1,14 +1,14 @@
-import "./Navbar.css";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import AddIcon from "@mui/icons-material/Add";
-import { IconButton } from "@mui/material";
-import NavbarListItem from "./NavbarListItem/NavbarListItem";
-import { Component } from "react";
+import './Navbar.css';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import AddIcon from '@mui/icons-material/Add';
+import { IconButton } from '@mui/material';
+import { Component } from 'react';
+import NavbarListItem from './NavbarListItem/NavbarListItem';
 
 class Navbar extends Component {
   constructor(props) {
     super(props);
-    console.log("Navbar constructor");
+    console.log('Navbar constructor');
   }
 
   onNavbarListItemSelection(data) {
@@ -23,34 +23,35 @@ class Navbar extends Component {
     this.props.removeFromNavbarList(id);
   }
 
+  createNavbarList() {
+    console.log(this.props.navbarList);
+    return this.props.navbarList.map((currentValue, index, arr) => (
+      <NavbarListItem
+        key={currentValue.id}
+        id={currentValue.id}
+        title={currentValue.title}
+        selectedNavbarListItemData={this.props.selectedNavbarListItemData}
+        onSelection={this.onNavbarListItemSelection.bind(this)}
+        onRemove={this.removeFromNavbarList.bind(this)}
+      />
+    ));
+  }
+
   render() {
-    console.log("Navbar rendered");
+    console.log('Navbar rendered');
     return (
       <div className="navbar">
-        <div className="navbar-header"></div>
-        <div className="navbar-content">
-          {
-            this.props.navbarList.map(({ id, title }) => (
-              <NavbarListItem
-                key={id.toString()}
-                id={id}
-                title={title}
-                selectedNavbarListItemData={this.props.selectedNavbarListItemData}
-                onSelection={this.onNavbarListItemSelection.bind(this)}
-                onRemove={this.removeFromNavbarList.bind(this)}
-              />
-            ))
-          }
-        </div>
+        <div className="navbar-header" />
+        <div className="navbar-content">{this.createNavbarList()}</div>
         <div className="navbar-footer">
           <div className="navbar-footer-inner">
             <IconButton
               className="navbar-footer-button-wrapper"
-              onClick={() => console.log("click!")}
+              onClick={() => console.log('click!')}
             >
               <MoreHorizIcon className="navbar-icon" fontSize="large" />
             </IconButton>
-            <div className="navbar-footer-middle"></div>
+            <div className="navbar-footer-middle" />
             <IconButton
               className="navbar-footer-button-wrapper"
               onClick={this.showPopup.bind(this)}

@@ -1,8 +1,9 @@
-import "./App.css";
-import Navbar from "./Navbar/Navbar";
-import Content from "./Content/Content";
-import Popup from "./Popup/Popup";
-import { Component } from "react";
+import './App.css';
+import { Component } from 'react';
+import Navbar from './Navbar/Navbar';
+import Content from './Content/Content';
+import Popup from './Popup/Popup';
+import FirezFirebase from './firebase';
 
 class App extends Component {
   constructor(props) {
@@ -12,7 +13,18 @@ class App extends Component {
       showPopup: false,
       navbarList: [],
     };
-    console.log("App constructor");
+
+    this.firezfirebase = new FirezFirebase();
+    console.log('App constructor');
+  }
+
+  componentDidMount() {
+    console.log('App componentDidMount()');
+    this.firezfirebase.onNavbarListChange(this.updateNavbarList.bind(this));
+  }
+
+  updateNavbarList(newList) {
+    this.setState({ navbarList: newList });
   }
 
   onNavbarListItemSelection(data) {
@@ -20,18 +32,14 @@ class App extends Component {
   }
 
   addToNavbarList(navbarListItem) {
-    this.setState(prevState => ({
-      navbarList: [...prevState.navbarList, navbarListItem]
-    }))
+    this.firezfirebase.insertNavbarListItem(navbarListItem);
   }
 
   removeFromNavbarList(id) {
     this.setState({
-      navbarList: this.state.navbarList.filter(function(navbarListItem) { 
-        return navbarListItem.id !== id 
-      }),
-      selectedNavbarListItemData: {}
+      selectedNavbarListItemData: {},
     });
+    this.firezfirebase.removeNavbarListItem(id);
   }
 
   onPopupShow() {
@@ -47,7 +55,7 @@ class App extends Component {
     });
     console.log('onPopupSave');
     console.log(textValue);
-    this.addToNavbarList({id: this.state.navbarList.length, title: textValue});
+    this.addToNavbarList({ title: textValue });
   }
 
   onPopupCancel() {
@@ -58,11 +66,15 @@ class App extends Component {
   }
 
   render() {
-    console.log("App rendered");
+    console.log('App rendered');
     return (
       <div className="App">
         {this.state.showPopup ? (
-          <Popup text="Close Me" onPopupSave={this.onPopupSave.bind(this)} onPopupCancel={this.onPopupCancel.bind(this)}/>
+          <Popup
+            text="Close Me"
+            onPopupSave={this.onPopupSave.bind(this)}
+            onPopupCancel={this.onPopupCancel.bind(this)}
+          />
         ) : null}
         <Navbar
           onNavbarListItemSelection={this.onNavbarListItemSelection.bind(this)}

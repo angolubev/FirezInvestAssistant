@@ -1,5 +1,5 @@
-import "./Content.css";
-import { Component } from "react";
+import './Content.css';
+import { Component } from 'react';
 
 class Content extends Component {
   constructor(props) {
@@ -10,7 +10,7 @@ class Content extends Component {
     if (this.props.selectedNavbarListItemData) {
       return this.props.selectedNavbarListItemData.title;
     }
-    return "";
+    return '';
   }
 
   render() {
@@ -21,8 +21,8 @@ class Content extends Component {
             <div className="content-header-middle">{this.getTitle()}</div>
           </div>
         </div>
-        <div className="content-main"></div>
-        <div className="content-footer"></div>
+        <div className="content-main" />
+        <div className="content-footer" />
       </div>
     );
   }
