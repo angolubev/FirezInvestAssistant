@@ -4,7 +4,7 @@ import './Popup.css';
 class Popup extends Component {
   constructor(props) {
     super(props);
-    this.state = { textValue: '' };
+    this.state = { textValue: props.textValue };
   }
 
   onChange(event) {

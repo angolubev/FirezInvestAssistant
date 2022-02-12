@@ -15,8 +15,12 @@ class Navbar extends Component {
     this.props.onNavbarListItemSelection(data);
   }
 
-  showPopup() {
-    this.props.showPopup();
+  onEditNavbarListItem(navbarListItem) {
+    this.props.onEditNavbarListItem(navbarListItem);
+  }
+
+  onAddNavbarListItem() {
+    this.props.onAddNavbarListItem();
   }
 
   removeFromNavbarList(id) {
@@ -29,10 +33,12 @@ class Navbar extends Component {
       <NavbarListItem
         key={currentValue.id}
         id={currentValue.id}
+        index={index}
         title={currentValue.title}
         selectedNavbarListItemData={this.props.selectedNavbarListItemData}
         onSelection={this.onNavbarListItemSelection.bind(this)}
         onRemove={this.removeFromNavbarList.bind(this)}
+        onEdit={this.onEditNavbarListItem.bind(this)}
       />
     ));
   }
@@ -54,7 +60,7 @@ class Navbar extends Component {
             <div className="navbar-footer-middle" />
             <IconButton
               className="navbar-footer-button-wrapper"
-              onClick={this.showPopup.bind(this)}
+              onClick={this.onAddNavbarListItem.bind(this)}
             >
               <AddIcon className="navbar-icon" fontSize="large" />
             </IconButton>

@@ -10,6 +10,8 @@ import {
   onValue,
   onChildAdded,
   remove,
+  update,
+  onChildChanged,
 } from 'firebase/database';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -45,6 +47,11 @@ export default class FirezFirebase {
     remove(r);
   }
 
+  editNavbarListItem(id, navbarListItem) {
+    const r = ref(this.database, `${this.NAVBAR_LIST_ITEMS_HEADER}/${id}`);
+    update(r, navbarListItem);
+  }
+
   onNavbarListChange(callback) {
     const r = ref(this.database, this.NAVBAR_LIST_ITEMS_HEADER);
     console.log('onNavbarListChange');
@@ -58,6 +65,18 @@ export default class FirezFirebase {
         navbarList.push(childData);
       });
       callback(navbarList);
+    });
+  }
+
+  onNavbarListItemChange(callback) {
+    const r = ref(this.database, this.NAVBAR_LIST_ITEMS_HEADER);
+    console.log('onNavbarListItemChange');
+    onChildChanged(r, (snapshot) => {
+      console.log('onChildChanged');
+      const childData = snapshot.val();
+      console.log(childData);
+      childData.id = snapshot.key;
+      callback(childData);
     });
   }
 }

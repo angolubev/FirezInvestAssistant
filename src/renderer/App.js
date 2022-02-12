@@ -11,6 +11,7 @@ class App extends Component {
     this.state = {
       selectedNavbarListItemData: {},
       showPopup: false,
+      popupAction: '',
       navbarList: [],
     };
 
@@ -21,10 +22,25 @@ class App extends Component {
   componentDidMount() {
     console.log('App componentDidMount()');
     this.firezfirebase.onNavbarListChange(this.updateNavbarList.bind(this));
+    this.firezfirebase.onNavbarListItemChange(
+      this.updateNavbarListItem.bind(this)
+    );
   }
 
   updateNavbarList(newList) {
     this.setState({ navbarList: newList });
+  }
+
+  updateNavbarListItem(navbarListItem) {
+    let navbarList = this.state.navbarList;
+    navbarList[this.state.selectedNavbarListItemData.index] = navbarListItem;
+    this.updateNavbarList(navbarList);
+  }
+
+  removeNavbarListItemSelection() {
+    this.setState({
+      selectedNavbarListItemData: {},
+    });
   }
 
   onNavbarListItemSelection(data) {
@@ -35,18 +51,34 @@ class App extends Component {
     this.firezfirebase.insertNavbarListItem(navbarListItem);
   }
 
+  onAddNavbarListItem() {
+    this.popupShow('addNavbarListItem');
+  }
+
   removeFromNavbarList(id) {
-    this.setState({
-      selectedNavbarListItemData: {},
-    });
+    this.removeNavbarListItemSelection();
     this.firezfirebase.removeNavbarListItem(id);
   }
 
-  onPopupShow() {
+  onEditNavbarListItem(navbarListItem) {
+    this.setState({
+      navbarListItemToEdit: navbarListItem,
+    });
+    this.popupShow('editNavbarListItem');
+  }
+
+  editNavbarListItem(id, newTitle) {
+    this.removeNavbarListItemSelection();
+    this.firezfirebase.editNavbarListItem(id, newTitle);
+  }
+
+  popupShow(action) {
     this.setState({
       showPopup: true,
+      popupAction: action,
+      selectedNavbarListItemData: {},
     });
-    console.log('onPopupShow');
+    console.log('popupShow');
   }
 
   onPopupSave(textValue) {
@@ -55,7 +87,13 @@ class App extends Component {
     });
     console.log('onPopupSave');
     console.log(textValue);
-    this.addToNavbarList({ title: textValue });
+    if (this.state.popupAction == 'editNavbarListItem') {
+      this.editNavbarListItem(this.state.navbarListItemToEdit.id, {
+        title: textValue,
+      });
+    } else if (this.state.popupAction == 'addNavbarListItem') {
+      this.addToNavbarList({ title: textValue });
+    }
   }
 
   onPopupCancel() {
@@ -65,23 +103,32 @@ class App extends Component {
     console.log('onPopupCancel');
   }
 
+  createPopup() {
+    const textValue =
+      this.state.popupAction == 'editNavbarListItem'
+        ? this.state.navbarListItemToEdit.title
+        : '';
+    return this.state.showPopup ? (
+      <Popup
+        textValue={textValue}
+        onPopupSave={this.onPopupSave.bind(this)}
+        onPopupCancel={this.onPopupCancel.bind(this)}
+      />
+    ) : null;
+  }
+
   render() {
     console.log('App rendered');
     return (
       <div className="App">
-        {this.state.showPopup ? (
-          <Popup
-            text="Close Me"
-            onPopupSave={this.onPopupSave.bind(this)}
-            onPopupCancel={this.onPopupCancel.bind(this)}
-          />
-        ) : null}
+        {this.createPopup()}
         <Navbar
           onNavbarListItemSelection={this.onNavbarListItemSelection.bind(this)}
           selectedNavbarListItemData={this.state.selectedNavbarListItemData}
-          showPopup={this.onPopupShow.bind(this)}
           navbarList={this.state.navbarList}
           removeFromNavbarList={this.removeFromNavbarList.bind(this)}
+          onEditNavbarListItem={this.onEditNavbarListItem.bind(this)}
+          onAddNavbarListItem={this.onAddNavbarListItem.bind(this)}
         />
         <Content
           selectedNavbarListItemData={this.state.selectedNavbarListItemData}
