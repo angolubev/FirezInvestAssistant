@@ -3,7 +3,7 @@ import { Component } from 'react';
 import Navbar from './Navbar/Navbar';
 import Content from './Content/Content';
 import Popup from './Popup/Popup';
-import FirezFirebase from './firebase';
+import FirezFirebase from './Firebase/firebase';
 
 class App extends Component {
   constructor(props) {
@@ -21,8 +21,10 @@ class App extends Component {
 
   componentDidMount() {
     console.log('App componentDidMount()');
-    this.firezfirebase.onNavbarListChange(this.updateNavbarList.bind(this));
-    this.firezfirebase.onNavbarListItemChange(
+    this.firezfirebase.navbarListHandler.onListChange(
+      this.updateNavbarList.bind(this)
+    );
+    this.firezfirebase.navbarListHandler.onListItemChange(
       this.updateNavbarListItem.bind(this)
     );
   }
@@ -47,17 +49,13 @@ class App extends Component {
     this.setState({ selectedNavbarListItemData: data });
   }
 
-  addToNavbarList(navbarListItem) {
-    this.firezfirebase.insertNavbarListItem(navbarListItem);
-  }
-
   onAddNavbarListItem() {
     this.popupShow('addNavbarListItem');
   }
 
   removeFromNavbarList(id) {
     this.removeNavbarListItemSelection();
-    this.firezfirebase.removeNavbarListItem(id);
+    this.firezfirebase.navbarListHandler.removeListItem(id);
   }
 
   onEditNavbarListItem(navbarListItem) {
@@ -65,11 +63,6 @@ class App extends Component {
       navbarListItemToEdit: navbarListItem,
     });
     this.popupShow('editNavbarListItem');
-  }
-
-  editNavbarListItem(id, newTitle) {
-    this.removeNavbarListItemSelection();
-    this.firezfirebase.editNavbarListItem(id, newTitle);
   }
 
   popupShow(action) {
@@ -88,11 +81,12 @@ class App extends Component {
     console.log('onPopupSave');
     console.log(textValue);
     if (this.state.popupAction == 'editNavbarListItem') {
-      this.editNavbarListItem(this.state.navbarListItemToEdit.id, {
+      this.firezfirebase.navbarListHandler.updateListItem({
+        id: this.state.navbarListItemToEdit.id,
         title: textValue,
       });
     } else if (this.state.popupAction == 'addNavbarListItem') {
-      this.addToNavbarList({ title: textValue });
+      this.firezfirebase.navbarListHandler.insertListItem({ title: textValue });
     }
   }
 
