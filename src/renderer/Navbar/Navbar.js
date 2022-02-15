@@ -11,8 +11,8 @@ class Navbar extends Component {
     console.log('Navbar constructor');
   }
 
-  onNavbarListItemSelection(data) {
-    this.props.onNavbarListItemSelection(data);
+  onNavbarListItemSelection(id) {
+    this.props.onNavbarListItemSelection(id);
   }
 
   onEditNavbarListItem(navbarListItem) {
@@ -32,10 +32,8 @@ class Navbar extends Component {
     return this.props.navbarList.map((currentValue, index, arr) => (
       <NavbarListItem
         key={currentValue.id}
-        id={currentValue.id}
-        index={index}
-        title={currentValue.title}
-        selectedNavbarListItemData={this.props.selectedNavbarListItemData}
+        data={currentValue}
+        selectedNavbarListItemId={this.props.selectedNavbarListItemId}
         onSelection={this.onNavbarListItemSelection.bind(this)}
         onRemove={this.removeFromNavbarList.bind(this)}
         onEdit={this.onEditNavbarListItem.bind(this)}

@@ -60,3 +60,53 @@
   background-color: blueviolet;
   font-weight: bold;
 }
+
+.grid-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: bisque;
+  height: 100%;
+}
+
+.content-footer-button-wrapper {
+  background-color: blue;
+  align-items: center;
+  position: relative;
+  min-width: 50px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.content-footer-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: row;
+  display: flex;
+  background-color: chartreuse;
+}
+
+.content-footer-middle {
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-width: 50px;
+  background-color: blueviolet;
+}
+
+.button-visible {
+  display: flex;
+}
+
+.button-invisible {
+  display: none;
+}

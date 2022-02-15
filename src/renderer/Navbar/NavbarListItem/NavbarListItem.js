@@ -12,28 +12,23 @@ class NavbarListItem extends Component {
 
   onClick() {
     console.log('list item clicked');
-    this.props.onSelection(this.props);
+    this.props.onSelection(this.props.data.id);
   }
 
   onRemove(e) {
     console.log('list item removed');
     e.stopPropagation();
-    this.props.onRemove(this.props.id);
+    this.props.onRemove(this.props.data.id);
   }
 
   onEdit(e) {
     console.log('list item edit');
     e.stopPropagation();
-    this.props.onEdit(this.props);
+    this.props.onEdit(this.props.data);
   }
 
   isActive() {
-    if (this.props.selectedNavbarListItemData) {
-      if (this.props.selectedNavbarListItemData.id === this.props.id) {
-        return true;
-      }
-    }
-    return false;
+    return this.props.selectedNavbarListItemId === this.props.data.id;
   }
 
   render() {
@@ -45,7 +40,7 @@ class NavbarListItem extends Component {
         }`}
         onClick={this.onClick.bind(this)}
       >
-        <span className="navbar-list-item-name">{this.props.title}</span>
+        <span className="navbar-list-item-name">{this.props.data.title}</span>
         <IconButton
           className={`navbar-list-item-button-wrapper ${
             this.isActive() ? 'button-visible' : 'button-invisible'

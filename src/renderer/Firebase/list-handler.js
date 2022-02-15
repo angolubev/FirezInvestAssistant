@@ -5,6 +5,9 @@ import {
   update,
   onValue,
   onChildChanged,
+  set,
+  get,
+  query
 } from 'firebase/database';
 
 export default class FirezFirebaseListHandler {
@@ -25,7 +28,7 @@ export default class FirezFirebaseListHandler {
 
   updateListItem(newListItem) {
     const r = ref(this.database, `${this.listName}/${newListItem.id}`);
-    update(r, newListItem);
+    set(r, newListItem);
   }
 
   onListChange(callback) {
@@ -47,6 +50,23 @@ export default class FirezFirebaseListHandler {
       const updatedListItem = snapshot.val();
       updatedListItem.id = snapshot.key;
       callback(updatedListItem);
+    });
+  }
+
+  getListItemByField(fieldName, value, callback) {
+    console.log('getListItemByField');
+    const r = ref(this.database, this.listName);
+    const q = query(r);
+    get(q).then(snapshot => {
+      console.log(snapshot);
+      let itemToReturn = null;
+      snapshot.forEach((item) => {
+        const childData = item.val();
+        if (childData[fieldName] === value) {
+          itemToReturn = childData;
+        }
+      });
+      callback(itemToReturn);
     });
   }
 }
