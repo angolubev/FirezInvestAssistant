@@ -11,7 +11,14 @@ class Content extends Component {
   constructor(props) {
     super(props);
     this.state = { equityIdsToDelete: new Set() };
-    this.columns = [{ field: 'title', headerName: 'Title', editable: true }];
+    this.columns = [
+      { field: 'ticker', headerName: 'Ticker' },
+      { field: 'name', headerName: 'Name' },
+      { field: 'price', headerName: 'Price' },
+      { field: 'marketCap', headerName: 'Capitalisation' },
+      { field: 'trailingPE', headerName: 'P/E' },
+      { field: 'needsUpdate', headerName: 'Needs update' },
+    ];
   }
 
   onSelectionModelChange(newSelectionModel) {

@@ -4,6 +4,8 @@ import Navbar from './Navbar/Navbar';
 import Content from './Content/Content';
 import Popup from './Popup/Popup';
 import FirezFirebase from './Firebase/firebase';
+import FirezYahooConnector from './API/yahoo';
+import FirezEquity from './Model/equity';
 
 class App extends Component {
   constructor(props) {
@@ -18,6 +20,10 @@ class App extends Component {
     };
 
     this.firezfirebase = new FirezFirebase();
+    this.firezYahooConnector = new FirezYahooConnector(
+      'l3qwKprfEf8kpp1kSGBDq9MFDBlcgY0WTWj20uGb'
+    );
+
     console.log('App constructor');
   }
 
@@ -27,7 +33,7 @@ class App extends Component {
       this.updateNavbarList.bind(this)
     );
     this.firezfirebase.navbarListHandler.onListItemChange(
-      this.updateNavbarList.bind(this)
+      this.updateNavbarListItem.bind(this)
     );
     this.firezfirebase.equitiesListHandler.onListChange(
       this.updateEquitiesList.bind(this)
@@ -49,6 +55,7 @@ class App extends Component {
 
   getEquitiesForSelectedNavbarListItem() {
     console.log('getEquitiesForSelectedNavbarListItem()');
+    console.log(this.state.equitiesList);
     const selectedNavbarListItem = this.getSelectedNavbarListItem();
     if (!selectedNavbarListItem || !selectedNavbarListItem.tickersList) {
       console.log('no data');
@@ -57,9 +64,13 @@ class App extends Component {
     console.log(selectedNavbarListItem.tickersList);
     return this.state.equitiesList.filter((equity) => {
       return selectedNavbarListItem.tickersList.some(
-        (ticker) => equity.title == ticker
+        (ticker) => equity.ticker == ticker
       );
     });
+  }
+
+  getEquityByTicker(ticker) {
+    return this.state.equitiesList.find((item) => item.ticker == ticker);
   }
 
   updateNavbarList(newList) {
@@ -67,6 +78,10 @@ class App extends Component {
   }
 
   updateEquitiesList(newList) {
+    newList.forEach((element, index, array) => {
+      const equity = new FirezEquity();
+      array[index] = equity.fromObject(element);
+    });
     this.setState({ equitiesList: newList });
   }
 
@@ -94,6 +109,60 @@ class App extends Component {
     this.popupShow('addEquity');
   }
 
+  getEquityFromYahooByTicker(ticker, callback) {
+    this.firezYahooConnector
+      .getQuoteByTicker(ticker)
+      .then((response) => response.json())
+      .then((result) => {
+        console.log(result);
+        callback(result.quoteResponse.result[0]);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
+
+  upsertEquity(ticker) {
+    const response = this.getEquityByTicker(ticker);
+    if (!response) {
+      console.log('adding equity to firebase');
+      this.getEquityFromYahooByTicker(ticker, (equityFromYahoo) => 
+        {
+          const newEquity = new FirezEquity();
+          newEquity.fromYahoo(equityFromYahoo, null);
+          this.firezfirebase.equitiesListHandler.insertListItem(newEquity)
+        }
+      );
+    } else {
+      const oldEquity = new FirezEquity();
+      oldEquity.fromObject(response);
+      console.log(oldEquity);
+      if (oldEquity.needsUpdate) {
+        console.log('updating equity');
+        this.getEquityFromYahooByTicker(ticker, (equityFromYahoo) => {
+          const newEquity = new FirezEquity();
+          newEquity.fromYahoo(equityFromYahoo, oldEquity.id);
+          this.firezfirebase.equitiesListHandler.updateListItem(newEquity);
+        });
+      }
+    }
+
+    console.log(this.state.navbarList);
+    const selectedNavbarListItem = this.getSelectedNavbarListItem();
+    let tickersList = selectedNavbarListItem.tickersList;
+    if (!tickersList) {
+      tickersList = new Set([ticker]);
+    } else {
+      tickersList = new Set(tickersList);
+      tickersList.add(ticker);
+    }
+    this.firezfirebase.navbarListHandler.updateListItem({
+      title: selectedNavbarListItem.title,
+      id: selectedNavbarListItem.id,
+      tickersList: Array.from(tickersList),
+    });
+  }
+
   removeFromNavbarList(id) {
     this.removeNavbarListItemSelection();
     this.firezfirebase.navbarListHandler.removeListItem(id);
@@ -105,7 +174,7 @@ class App extends Component {
     const tickersToRemove = new Set();
     this.state.equitiesList.forEach((element, index, array) => {
       if (equityIds.has(element.id)) {
-        tickersToRemove.add(element.title);
+        tickersToRemove.add(element.ticker);
       }
     });
     tickersList = tickersList.filter((ticker) => {
@@ -155,32 +224,7 @@ class App extends Component {
         tickersList: false,
       });
     } else if (this.state.popupAction == 'addEquity') {
-      this.firezfirebase.equitiesListHandler.getListItemByField(
-        'title',
-        textValue,
-        (equity) => {
-          console.log(equity);
-          if (!equity) {
-            this.firezfirebase.equitiesListHandler.insertListItem({
-              title: textValue,
-            });
-          }
-        }
-      );
-
-      const selectedNavbarListItem = this.getSelectedNavbarListItem();
-      let tickersList = selectedNavbarListItem.tickersList;
-      if (!tickersList) {
-        tickersList = new Set([textValue]);
-      } else {
-        tickersList = new Set(tickersList);
-        tickersList.add(textValue);
-      }
-      this.firezfirebase.navbarListHandler.updateListItem({
-        title: selectedNavbarListItem.title,
-        id: selectedNavbarListItem.id,
-        tickersList: Array.from(tickersList),
-      });
+      this.upsertEquity(textValue);
     }
   }
 
