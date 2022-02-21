@@ -8,6 +8,10 @@ export default class FirezEquity {
     this.price = obj.price;
     this.marketCap = obj.marketCap;
     this.trailingPE = obj.trailingPE;
+    this.dividendYield = obj.dividendYield;
+    this.totalRevenue = obj.totalRevenue;
+    this.PS = obj.PS;
+    this.forwardPE = obj.forwardPE;
     if (obj.lastUpdateTimestamp) {
       this.lastUpdateTimestamp = obj.lastUpdateTimestamp;
     } else {
@@ -23,8 +27,22 @@ export default class FirezEquity {
     this.price = equityFromYahoo.bid ? equityFromYahoo.bid : null,
     this.marketCap = equityFromYahoo.marketCap ? equityFromYahoo.marketCap : null,
     this.trailingPE = equityFromYahoo.trailingPE ? equityFromYahoo.trailingPE : null,
+    this.forwardPE = equityFromYahoo.forwardPE ? equityFromYahoo.forwardPE : null,
     this.lastUpdateTimestamp = Date.now();
     return this;
+  }
+
+  fromSummary(summary) {
+    this.dividendYield = summary.dividendYield.raw ? summary.dividendYield.raw : 0;
+  }
+
+  fromFinancialData(data) {
+    this.totalRevenue = data.totalRevenue.raw ? data.totalRevenue.raw : null;
+    if(this.totalRevenue && this.marketCap) {
+      this.PS = this.marketCap / this.totalRevenue;
+    } else {
+      this.PS = null;
+    }
   }
 
   get needsUpdate() {

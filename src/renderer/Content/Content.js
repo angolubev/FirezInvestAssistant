@@ -6,19 +6,43 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { IconButton } from '@mui/material';
+import FirezEquityView from 'renderer/Model/equity-view';
 
 class Content extends Component {
   constructor(props) {
     super(props);
     this.state = { equityIdsToDelete: new Set() };
+
+    const currencyFormatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    });
+    
+    const usdPrice = {
+      type: 'number',
+      valueFormatter: ({ value }) => currencyFormatter.format(Number(value)),
+    };
+
     this.columns = [
-      { field: 'ticker', headerName: 'Ticker' },
-      { field: 'name', headerName: 'Name' },
-      { field: 'price', headerName: 'Price' },
-      { field: 'marketCap', headerName: 'Capitalisation' },
-      { field: 'trailingPE', headerName: 'P/E' },
-      { field: 'needsUpdate', headerName: 'Needs update' },
+      { field: 'ticker', headerName: 'Ticker', width: 60 },
+      { field: 'name', headerName: 'Name', width: 200 },
+      { field: 'price', headerName: 'Price', width: 90, ...usdPrice },
+      { field: 'marketCap', headerName: 'Capitalisation', width: 120, ...usdPrice },
+      { field: 'trailingPE', headerName: 'P/E', width: 60, type: 'number' },
+      { field: 'forwardPE', headerName: 'Forward PE', width: 60, type: 'number' },
+      { field: 'dividendYield', headerName: 'DY', width: 60, type: 'number' },
+      { field: 'PS', headerName: 'PS', width: 60, type: 'number' },
+      { field: 'recentlyUpdated', headerName: 'Updated', type: 'boolean' },
     ];
+  }
+
+  get rows() {
+    const equityViews = [];
+    this.props.equitiesList.forEach(element => {
+      const view = new FirezEquityView();
+      equityViews.push(view.fromEquity(element));
+    });
+    return equityViews;
   }
 
   onSelectionModelChange(newSelectionModel) {
@@ -42,7 +66,7 @@ class Content extends Component {
     return this.isVisible() ? (
       <DataGrid
         columns={this.columns}
-        rows={this.props.equitiesList}
+        rows={this.rows}
         checkboxSelection={this.props.deletionMode}
         density="compact"
         onSelectionModelChange={this.onSelectionModelChange.bind(this)}

@@ -109,39 +109,36 @@ class App extends Component {
     this.popupShow('addEquity');
   }
 
-  getEquityFromYahooByTicker(ticker, callback) {
-    this.firezYahooConnector
-      .getQuoteByTicker(ticker)
-      .then((response) => response.json())
-      .then((result) => {
-        console.log(result);
-        callback(result.quoteResponse.result[0]);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+  constructEquityFromYahoo(ticker, id, callback) {
+    this.firezYahooConnector.getQuoteByTicker(ticker, (equityFromYahoo) => 
+      {
+        const newEquity = new FirezEquity();
+        newEquity.fromYahoo(equityFromYahoo, id);
+        this.firezYahooConnector.getQuoteSummaryDetailByTicker(ticker, summary => {
+          newEquity.fromSummary(summary);
+          this.firezYahooConnector.getQuoteFinancialDataByTicker(ticker, financialData => {
+            newEquity.fromFinancialData(financialData);
+            callback(newEquity);
+          });
+        });
+      }
+    );
   }
 
   upsertEquity(ticker) {
     const response = this.getEquityByTicker(ticker);
     if (!response) {
       console.log('adding equity to firebase');
-      this.getEquityFromYahooByTicker(ticker, (equityFromYahoo) => 
-        {
-          const newEquity = new FirezEquity();
-          newEquity.fromYahoo(equityFromYahoo, null);
-          this.firezfirebase.equitiesListHandler.insertListItem(newEquity)
-        }
-      );
+      this.constructEquityFromYahoo(ticker, null, newEquity => {
+        this.firezfirebase.equitiesListHandler.insertListItem(newEquity);
+      });
     } else {
       const oldEquity = new FirezEquity();
       oldEquity.fromObject(response);
       console.log(oldEquity);
       if (oldEquity.needsUpdate) {
         console.log('updating equity');
-        this.getEquityFromYahooByTicker(ticker, (equityFromYahoo) => {
-          const newEquity = new FirezEquity();
-          newEquity.fromYahoo(equityFromYahoo, oldEquity.id);
+        this.constructEquityFromYahoo(ticker, oldEquity.id, newEquity => {
           this.firezfirebase.equitiesListHandler.updateListItem(newEquity);
         });
       }
