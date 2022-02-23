@@ -17,6 +17,8 @@ class App extends Component {
       navbarList: [],
       equitiesList: [],
       contentDeletionMode: false,
+      loadingEquities: false,
+      errorMessageLoadingEquities: '',
     };
 
     this.firezfirebase = new FirezFirebase();
@@ -38,6 +40,25 @@ class App extends Component {
     this.firezfirebase.equitiesListHandler.onListChange(
       this.updateEquitiesList.bind(this)
     );
+  }
+
+  startLoadingEquities() {
+    this.setState({
+      loadingEquities: true,
+    });
+  }
+
+  loadingEquitiesErrorCallback(errorMessage) {
+    this.setState({
+      loadingEquities: false,
+      errorMessageLoadingEquities: errorMessage,
+    });
+  }
+
+  onContentErrorClose() {
+    this.setState({
+      errorMessageLoadingEquities: '',
+    });
   }
 
   setContentDeletionMode(val) {
@@ -82,7 +103,7 @@ class App extends Component {
       const equity = new FirezEquity();
       array[index] = equity.fromObject(element);
     });
-    this.setState({ equitiesList: newList });
+    this.setState({ equitiesList: newList, loadingEquities: false });
   }
 
   updateNavbarListItem(navbarListItem) {
@@ -109,19 +130,27 @@ class App extends Component {
     this.popupShow('addEquity');
   }
 
-  constructEquityFromYahoo(ticker, id, callback) {
-    this.firezYahooConnector.getQuoteByTicker(ticker, (equityFromYahoo) => 
-      {
+  constructEquityFromYahoo(ticker, id, callbackSuccess, callbackError) {
+    this.firezYahooConnector.getQuoteByTicker(
+      ticker,
+      (equityFromYahoo) => {
         const newEquity = new FirezEquity();
         newEquity.fromYahoo(equityFromYahoo, id);
-        this.firezYahooConnector.getQuoteSummaryDetailByTicker(ticker, summary => {
-          newEquity.fromSummary(summary);
-          this.firezYahooConnector.getQuoteFinancialDataByTicker(ticker, financialData => {
-            newEquity.fromFinancialData(financialData);
-            callback(newEquity);
-          });
-        });
-      }
+        this.firezYahooConnector.getQuoteSummaryDetailByTicker(
+          ticker,
+          (summary) => {
+            newEquity.fromSummary(summary);
+            this.firezYahooConnector.getQuoteFinancialDataByTicker(
+              ticker,
+              (financialData) => {
+                newEquity.fromFinancialData(financialData);
+                callbackSuccess(newEquity);
+              }
+            );
+          }
+        );
+      },
+      callbackError
     );
   }
 
@@ -129,18 +158,34 @@ class App extends Component {
     const response = this.getEquityByTicker(ticker);
     if (!response) {
       console.log('adding equity to firebase');
-      this.constructEquityFromYahoo(ticker, null, newEquity => {
-        this.firezfirebase.equitiesListHandler.insertListItem(newEquity);
-      });
+      this.startLoadingEquities();
+      this.constructEquityFromYahoo(
+        ticker,
+        null,
+        (newEquity) => {
+          this.firezfirebase.equitiesListHandler.insertListItem(newEquity);
+        },
+        (errorMessage) => {
+          this.loadingEquitiesErrorCallback(errorMessage);
+        }
+      );
     } else {
       const oldEquity = new FirezEquity();
       oldEquity.fromObject(response);
       console.log(oldEquity);
       if (oldEquity.needsUpdate) {
         console.log('updating equity');
-        this.constructEquityFromYahoo(ticker, oldEquity.id, newEquity => {
-          this.firezfirebase.equitiesListHandler.updateListItem(newEquity);
-        });
+        this.startLoadingEquities();
+        this.constructEquityFromYahoo(
+          ticker,
+          oldEquity.id,
+          (newEquity) => {
+            this.firezfirebase.equitiesListHandler.updateListItem(newEquity);
+          },
+          (errorMessage) => {
+            this.loadingEquitiesErrorCallback(errorMessage);
+          }
+        );
       }
     }
 
@@ -266,6 +311,9 @@ class App extends Component {
           deletionMode={this.state.contentDeletionMode}
           setContentDeletionMode={this.setContentDeletionMode.bind(this)}
           onDeleteEquities={this.removeEquitiesFromNavbarListItem.bind(this)}
+          loadingEquities={this.state.loadingEquities}
+          errorMessage={this.state.errorMessageLoadingEquities}
+          onErrorClose={this.onContentErrorClose.bind(this)}
         />
       </div>
     );

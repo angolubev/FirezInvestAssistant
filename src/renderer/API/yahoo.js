@@ -3,7 +3,7 @@ export default class FirezYahooConnector {
     this.apiKey = apiKey;
   }
 
-  getQuoteByTicker(ticker, callback) {
+  getQuoteByTicker(ticker, callbackSuccess, callbackError) {
     fetch(
       'https://yfapi.net/v6/finance/quote?region=US&lang=en&symbols=' + ticker,
       {
@@ -17,11 +17,14 @@ export default class FirezYahooConnector {
       .then((result) => {
         console.log(result);
         if (result.quoteResponse.result.length > 0) {
-          callback(result.quoteResponse.result[0]);
+          callbackSuccess(result.quoteResponse.result[0]);
+        } else {
+          callbackError("Can't get equity with ticker " + ticker);
         }
       })
       .catch((error) => {
         console.error(error);
+        callbackError(error.message);
       });
   }
 
