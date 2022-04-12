@@ -5,6 +5,7 @@ import Content from './Content/Content';
 import Popup from './Popup/Popup';
 import FirezFirebase from './Firebase/firebase';
 import FirezYahooConnector from './API/yahoo';
+import FirezAlphavantageConnector from './API/alphavantage';
 import FirezEquity from './Model/equity';
 
 class App extends Component {
@@ -19,11 +20,15 @@ class App extends Component {
       contentDeletionMode: false,
       loadingEquities: false,
       errorMessageLoadingEquities: '',
+      dataProvider: 'alphavantage'
     };
 
     this.firezfirebase = new FirezFirebase();
     this.firezYahooConnector = new FirezYahooConnector(
       'l3qwKprfEf8kpp1kSGBDq9MFDBlcgY0WTWj20uGb'
+    );
+    this.firezAlphavantageConnector = new FirezAlphavantageConnector(
+      '98QB21YMRN4O9ZKP'
     );
 
     console.log('App constructor');
@@ -130,6 +135,33 @@ class App extends Component {
     this.popupShow('addEquity');
   }
 
+  constructEquity(ticker, id, callbackSuccess, callbackError) {
+    if(this.state.dataProvider === 'yahoo') {
+      this.constructEquityFromYahoo(ticker, id, callbackSuccess, callbackError);
+    } else if (this.state.dataProvider === 'alphavantage') {
+      this.constructEquityFromAlphavantage(ticker, id, callbackSuccess, callbackError);
+    }
+  }
+
+  constructEquityFromAlphavantage(ticker, id, callbackSuccess, callbackError) {
+    this.firezAlphavantageConnector.getQuoteOverviewByTicker(
+      ticker,
+      (equityFromAlphavantageOverview) => {
+        const newEquity = new FirezEquity();
+        newEquity.fromAlphavantageOverview(equityFromAlphavantageOverview, id);
+        this.firezAlphavantageConnector.getGlobalQuoteByTicker(
+          ticker,
+          (equityFromAlphavantageGlobalQuote) => {
+            newEquity.fromAlphavantageGlobalQuote(equityFromAlphavantageGlobalQuote);
+            callbackSuccess(newEquity);
+          },
+          callbackError
+        )
+      },
+      callbackError
+    );
+  }
+
   constructEquityFromYahoo(ticker, id, callbackSuccess, callbackError) {
     this.firezYahooConnector.getQuoteByTicker(
       ticker,
@@ -159,7 +191,7 @@ class App extends Component {
     if (!response) {
       console.log('adding equity to firebase');
       this.startLoadingEquities();
-      this.constructEquityFromYahoo(
+      this.constructEquity(
         ticker,
         null,
         (newEquity) => {
@@ -176,7 +208,7 @@ class App extends Component {
       if (oldEquity.needsUpdate) {
         console.log('updating equity');
         this.startLoadingEquities();
-        this.constructEquityFromYahoo(
+        this.constructEquity(
           ticker,
           oldEquity.id,
           (newEquity) => {
