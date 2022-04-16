@@ -20,7 +20,7 @@ class App extends Component {
       contentDeletionMode: false,
       loadingEquities: false,
       errorMessageLoadingEquities: '',
-      dataProvider: 'alphavantage'
+      dataProvider: 'yahoo',
     };
 
     this.firezfirebase = new FirezFirebase();
@@ -81,7 +81,6 @@ class App extends Component {
 
   getEquitiesForSelectedNavbarListItem() {
     console.log('getEquitiesForSelectedNavbarListItem()');
-    console.log(this.state.equitiesList);
     const selectedNavbarListItem = this.getSelectedNavbarListItem();
     if (!selectedNavbarListItem || !selectedNavbarListItem.tickersList) {
       console.log('no data');
@@ -97,6 +96,10 @@ class App extends Component {
 
   getEquityByTicker(ticker) {
     return this.state.equitiesList.find((item) => item.ticker == ticker);
+  }
+
+  getEquityById(id) {
+    return this.state.equitiesList.find((item) => item.id == id);
   }
 
   updateNavbarList(newList) {
@@ -136,10 +139,15 @@ class App extends Component {
   }
 
   constructEquity(ticker, id, callbackSuccess, callbackError) {
-    if(this.state.dataProvider === 'yahoo') {
+    if (this.state.dataProvider === 'yahoo') {
       this.constructEquityFromYahoo(ticker, id, callbackSuccess, callbackError);
     } else if (this.state.dataProvider === 'alphavantage') {
-      this.constructEquityFromAlphavantage(ticker, id, callbackSuccess, callbackError);
+      this.constructEquityFromAlphavantage(
+        ticker,
+        id,
+        callbackSuccess,
+        callbackError
+      );
     }
   }
 
@@ -152,11 +160,13 @@ class App extends Component {
         this.firezAlphavantageConnector.getGlobalQuoteByTicker(
           ticker,
           (equityFromAlphavantageGlobalQuote) => {
-            newEquity.fromAlphavantageGlobalQuote(equityFromAlphavantageGlobalQuote);
+            newEquity.fromAlphavantageGlobalQuote(
+              equityFromAlphavantageGlobalQuote
+            );
             callbackSuccess(newEquity);
           },
           callbackError
-        )
+        );
       },
       callbackError
     );
@@ -177,50 +187,64 @@ class App extends Component {
               (financialData) => {
                 newEquity.fromFinancialData(financialData);
                 callbackSuccess(newEquity);
-              }
+              },
+              callbackError
             );
-          }
+          },
+          callbackError
         );
       },
       callbackError
     );
   }
 
-  upsertEquity(ticker) {
-    const response = this.getEquityByTicker(ticker);
-    if (!response) {
-      console.log('adding equity to firebase');
+  insertEquity(ticker) {
+    console.log('adding equity to firebase');
+    this.startLoadingEquities();
+    this.constructEquity(
+      ticker,
+      null,
+      (newEquity) => {
+        this.firezfirebase.equitiesListHandler.insertListItem(newEquity);
+      },
+      (errorMessage) => {
+        this.loadingEquitiesErrorCallback(errorMessage);
+      }
+    );
+
+    this.updateTickersList(ticker);
+  }
+
+  updateEquity(ticker, response) {
+    const oldEquity = new FirezEquity();
+    oldEquity.fromObject(response);
+    console.log(oldEquity);
+    if (oldEquity.needsUpdate) {
+      console.log('updating equity');
       this.startLoadingEquities();
       this.constructEquity(
         ticker,
-        null,
+        oldEquity.id,
         (newEquity) => {
-          this.firezfirebase.equitiesListHandler.insertListItem(newEquity);
+          this.firezfirebase.equitiesListHandler.updateListItem(newEquity);
         },
         (errorMessage) => {
           this.loadingEquitiesErrorCallback(errorMessage);
         }
       );
-    } else {
-      const oldEquity = new FirezEquity();
-      oldEquity.fromObject(response);
-      console.log(oldEquity);
-      if (oldEquity.needsUpdate) {
-        console.log('updating equity');
-        this.startLoadingEquities();
-        this.constructEquity(
-          ticker,
-          oldEquity.id,
-          (newEquity) => {
-            this.firezfirebase.equitiesListHandler.updateListItem(newEquity);
-          },
-          (errorMessage) => {
-            this.loadingEquitiesErrorCallback(errorMessage);
-          }
-        );
-      }
     }
 
+    this.updateTickersList(ticker);
+  }
+
+  updateEquities(equityIdsToUpdate) {
+    equityIdsToUpdate.forEach((id, index, array) => {
+      const response = this.getEquityById(id);
+      this.updateEquity(response.ticker, response);
+    });
+  }
+
+  updateTickersList(ticker) {
     console.log(this.state.navbarList);
     const selectedNavbarListItem = this.getSelectedNavbarListItem();
     let tickersList = selectedNavbarListItem.tickersList;
@@ -235,6 +259,15 @@ class App extends Component {
       id: selectedNavbarListItem.id,
       tickersList: Array.from(tickersList),
     });
+  }
+
+  upsertEquity(ticker) {
+    const response = this.getEquityByTicker(ticker);
+    if (!response) {
+      this.insertEquity(ticker);
+    } else {
+      this.updateEquity(ticker, response);
+    }
   }
 
   removeFromNavbarList(id) {
@@ -343,6 +376,7 @@ class App extends Component {
           deletionMode={this.state.contentDeletionMode}
           setContentDeletionMode={this.setContentDeletionMode.bind(this)}
           onDeleteEquities={this.removeEquitiesFromNavbarListItem.bind(this)}
+          onUpdateEquities={this.updateEquities.bind(this)}
           loadingEquities={this.state.loadingEquities}
           errorMessage={this.state.errorMessageLoadingEquities}
           onErrorClose={this.onContentErrorClose.bind(this)}

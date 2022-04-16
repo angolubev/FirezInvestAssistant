@@ -5,6 +5,7 @@ import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CachedIcon from '@mui/icons-material/Cached';
 import { IconButton } from '@mui/material';
 import FirezEquityView from 'renderer/Model/equity-view';
 import MuiAlert from '@mui/material/Alert';
@@ -145,12 +146,23 @@ class Content extends Component {
   }
 
   createDeleteButton() {
-    return this.isVisible() && this.props.deletionMode ? (
+    return this.isVisible() && this.props.deletionMode && this.state.equityIdsToDelete.size > 0 ? (
       <IconButton
         className="content-footer-button-wrapper"
         onClick={this.onDelete.bind(this)}
       >
         <DeleteIcon className="navbar-icon" fontSize="large" />
+      </IconButton>
+    ) : null;
+  }
+
+  createUpdateButton() {
+    return this.isVisible() && this.props.deletionMode && this.state.equityIdsToDelete.size > 0 ? (
+      <IconButton
+        className="content-footer-button-wrapper"
+        onClick={this.onUpdate.bind(this)}
+      >
+        <CachedIcon className="navbar-icon" fontSize="large" />
       </IconButton>
     ) : null;
   }
@@ -166,6 +178,11 @@ class Content extends Component {
   onDelete() {
     this.props.setContentDeletionMode(false);
     this.props.onDeleteEquities(this.state.equityIdsToDelete);
+  }
+
+  onUpdate() {
+    this.props.setContentDeletionMode(false);
+    this.props.onUpdateEquities(this.state.equityIdsToDelete);
   }
 
   onErrorClose() {
@@ -193,6 +210,7 @@ class Content extends Component {
             {this.createMoreButton()}
             <div className="content-footer-middle" />
             {this.createAddButton()}
+            {this.createUpdateButton()}
             {this.createDeleteButton()}
           </div>
         </div>

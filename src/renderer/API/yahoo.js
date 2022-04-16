@@ -16,10 +16,14 @@ export default class FirezYahooConnector {
       .then((response) => response.json())
       .then((result) => {
         console.log(result);
-        if (result.quoteResponse.result.length > 0) {
-          callbackSuccess(result.quoteResponse.result[0]);
-        } else {
-          callbackError("Can't get equity with ticker " + ticker);
+        if (result.quoteResponse) {
+          if (result.quoteResponse.result.length > 0) {
+            callbackSuccess(result.quoteResponse.result[0]);
+          } else {
+            callbackError("Can't get equity with ticker " + ticker);
+          }
+        } else if (result.message) {
+          callbackError(result.message);
         }
       })
       .catch((error) => {
@@ -28,7 +32,7 @@ export default class FirezYahooConnector {
       });
   }
 
-  getQuoteSummaryDetailByTicker(ticker, callback) {
+  getQuoteSummaryDetailByTicker(ticker, callbackSuccess, callbackError) {
     fetch(
       'https://yfapi.net/v11/finance/quoteSummary/' +
         ticker +
@@ -43,15 +47,23 @@ export default class FirezYahooConnector {
       .then((response) => response.json())
       .then((result) => {
         console.log(result);
-        if (result.quoteSummary.result) {
-          callback(result.quoteSummary.result[0].summaryDetail);
-        } else {
-          console.error(result.quoteSummary.error);
+        if (result.quoteSummary) {
+          if (result.quoteSummary.result) {
+            callbackSuccess(result.quoteSummary.result[0].summaryDetail);
+          } else {
+            console.error(result.quoteSummary.error);
+          }
+        } else if (result.message) {
+          callbackError(result.message);
         }
+      })
+      .catch((error) => {
+        console.error(error);
+        callbackError(error.message);
       });
   }
 
-  getQuoteFinancialDataByTicker(ticker, callback) {
+  getQuoteFinancialDataByTicker(ticker, callbackSuccess, callbackError) {
     fetch(
       'https://yfapi.net/v11/finance/quoteSummary/AAPL?lang=en&region=US&modules=financialData',
       {
@@ -64,11 +76,19 @@ export default class FirezYahooConnector {
       .then((response) => response.json())
       .then((result) => {
         console.log(result);
-        if (result.quoteSummary.result) {
-          callback(result.quoteSummary.result[0].financialData);
-        } else {
-          console.error(result.quoteSummary.error);
+        if (result.quoteSummary) {
+          if (result.quoteSummary.result) {
+            callbackSuccess(result.quoteSummary.result[0].financialData);
+          } else {
+            console.error(result.quoteSummary.error);
+          }
+        } else if (result.message) {
+          callbackError(result.message);
         }
+      })
+      .catch((error) => {
+        console.error(error);
+        callbackError(error.message);
       });
   }
 }
