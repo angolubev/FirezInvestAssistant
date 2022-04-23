@@ -1,5 +1,15 @@
 export default class FirezEquity {
-  constructor() {}
+  static UNDEFINED_VALUE = -999999;
+
+  constructor() {
+    this.price = 0;
+    this.marketCap = 0;
+    this.trailingPE = 0;
+    this.dividendYield = 0;
+    this.totalRevenue = 0;
+    this.PS = 0;
+    this.forwardPE = 0;
+  }
 
   fromObject(obj) {
     this.id = obj.id;
@@ -21,13 +31,14 @@ export default class FirezEquity {
   }
 
   fromYahoo(equityFromYahoo, id) {
+    console.log(FirezEquity.UNDEFINED_VALUE);
     this.id = id;
     this.ticker = equityFromYahoo.symbol ? equityFromYahoo.symbol : null;
     this.name = equityFromYahoo.longName ? equityFromYahoo.longName : null;
-    this.price = equityFromYahoo.bid ? equityFromYahoo.bid : null;
-    this.marketCap = equityFromYahoo.marketCap ? equityFromYahoo.marketCap : null;
-    this.trailingPE = equityFromYahoo.trailingPE ? equityFromYahoo.trailingPE : null;
-    this.forwardPE = equityFromYahoo.forwardPE ? equityFromYahoo.forwardPE : null;
+    this.price = equityFromYahoo.bid ? equityFromYahoo.bid : FirezEquity.UNDEFINED_VALUE;
+    this.marketCap = equityFromYahoo.marketCap ? equityFromYahoo.marketCap : FirezEquity.UNDEFINED_VALUE;
+    this.trailingPE = equityFromYahoo.trailingPE ? equityFromYahoo.trailingPE : FirezEquity.UNDEFINED_VALUE;
+    this.forwardPE = equityFromYahoo.forwardPE ? equityFromYahoo.forwardPE : FirezEquity.UNDEFINED_VALUE;
     this.lastUpdateTimestamp = Date.now();
     return this;
   }
@@ -53,11 +64,11 @@ export default class FirezEquity {
   }
 
   fromFinancialData(data) {
-    this.totalRevenue = data.totalRevenue.raw ? data.totalRevenue.raw : null;
+    this.totalRevenue = data.totalRevenue.raw ? data.totalRevenue.raw : FirezEquity.UNDEFINED_VALUE;
     if(this.totalRevenue && this.marketCap) {
       this.PS = this.marketCap / this.totalRevenue;
     } else {
-      this.PS = null;
+      this.PS = FirezEquity.UNDEFINED_VALUE;
     }
   }
 
@@ -65,5 +76,9 @@ export default class FirezEquity {
     const currentDate = new Date();
     const latestMidnight = currentDate.setHours(0, 0, 0, 0);
     return latestMidnight > this.lastUpdateTimestamp;
+  }
+
+  get recentlyUpdated() {
+    return !this.needsUpdate;
   }
 }

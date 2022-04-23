@@ -8,6 +8,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CachedIcon from '@mui/icons-material/Cached';
 import { IconButton } from '@mui/material';
 import FirezEquityView from 'renderer/Model/equity-view';
+import FirezEquity from 'renderer/Model/equity';
 import MuiAlert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -15,7 +16,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 class Content extends Component {
   constructor(props) {
     super(props);
-    this.state = { equityIdsToDelete: new Set() };
+    this.state = {
+      equityIdsToDelete: new Set(),
+      fieldNamesToNormalize: ['trailingPE', 'forwardPE', 'dividendYield', 'PS'],
+    };
 
     const currencyFormatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -25,6 +29,53 @@ class Content extends Component {
     const usdPrice = {
       type: 'number',
       valueFormatter: ({ value }) => currencyFormatter.format(Number(value)),
+    };
+
+    const multiplicatorFormatter = (params) => {
+      if (params.value == FirezEquity.UNDEFINED_VALUE) {
+        return '--';
+      } else {
+        const maxMinAvg = this.fieldNameToMaxMinAverage.get(params.field);
+        console.log(maxMinAvg);
+        let normalisedValue =
+          (params.value - maxMinAvg.min) / (maxMinAvg.max - maxMinAvg.min);
+        if (params.field != 'dividendYield') {
+          normalisedValue = 1 - normalisedValue;
+        }
+        if (params.field == 'dividendYield') {
+          return (
+            (params.value * 100).toFixed(2) +
+            '% (' +
+            normalisedValue.toFixed(4) +
+            ')'
+          );
+        }
+        return (
+          params.value.toFixed(3) + ' (' + normalisedValue.toFixed(4) + ')'
+        );
+      }
+    };
+
+    const averageValueGetter = (params) => {
+      let sum = 0;
+      let isFieldUndefined = false;
+      this.state.fieldNamesToNormalize.forEach((fieldName) => {
+        if (params.row[fieldName] == FirezEquity.UNDEFINED_VALUE) {
+          isFieldUndefined = true;
+        }
+        const maxMinAvg = this.fieldNameToMaxMinAverage.get(fieldName);
+        let normalisedValue =
+          (params.row[fieldName] - maxMinAvg.min) /
+          (maxMinAvg.max - maxMinAvg.min);
+        if (fieldName != 'dividendYield') {
+          normalisedValue = 1 - normalisedValue;
+        }
+        sum += normalisedValue;
+      });
+      if (isFieldUndefined) {
+        return FirezEquity.UNDEFINED_VALUE;
+      }
+      return (sum / this.state.fieldNamesToNormalize.length).toFixed(3) + '';
     };
 
     this.columns = [
@@ -37,26 +88,92 @@ class Content extends Component {
         width: 120,
         ...usdPrice,
       },
-      { field: 'trailingPE', headerName: 'P/E', width: 60, type: 'number' },
+      {
+        field: 'trailingPE',
+        headerName: 'P/E',
+        width: 120,
+        type: 'number',
+        valueFormatter: multiplicatorFormatter,
+      },
       {
         field: 'forwardPE',
         headerName: 'Forward PE',
-        width: 60,
+        width: 120,
         type: 'number',
+        valueFormatter: multiplicatorFormatter,
       },
-      { field: 'dividendYield', headerName: 'DY', width: 60, type: 'number' },
-      { field: 'PS', headerName: 'PS', width: 60, type: 'number' },
+      {
+        field: 'dividendYield',
+        headerName: 'DY',
+        width: 130,
+        type: 'number',
+        valueFormatter: multiplicatorFormatter,
+      },
+      {
+        field: 'PS',
+        headerName: 'PS',
+        width: 120,
+        type: 'number',
+        valueFormatter: multiplicatorFormatter,
+      },
+      {
+        field: 'average',
+        headerName: 'Average',
+        width: 80,
+        type: 'number',
+        valueGetter: averageValueGetter,
+        valueFormatter: (params) => {
+          if (params.value == FirezEquity.UNDEFINED_VALUE) {
+            return '--';
+          }
+        },
+      },
       { field: 'recentlyUpdated', headerName: 'Updated', type: 'boolean' },
     ];
   }
 
+  componentDidMount() {
+    this.fieldNameToMaxMinAverage = this.calculateMaxMinAverage(
+      this.state.fieldNamesToNormalize
+    );
+  }
+
+  componentDidUpdate(prevProps) {
+    this.fieldNameToMaxMinAverage = this.calculateMaxMinAverage(
+      this.state.fieldNamesToNormalize
+    );
+  }
+
   get rows() {
-    const equityViews = [];
-    this.props.equitiesList.forEach((element) => {
-      const view = new FirezEquityView();
-      equityViews.push(view.fromEquity(element));
+    return this.props.equitiesList;
+  }
+
+  calculateMaxMinAverage(fieldNames) {
+    const fieldNameToMaxMinAverage = new Map();
+    fieldNames.forEach((fieldName) => {
+      let max = -999999;
+      let min = 999999;
+      let sum = 0;
+      let k = 0;
+      this.props.equitiesList.forEach((equity) => {
+        if (equity[fieldName] != FirezEquity.UNDEFINED_VALUE) {
+          if (equity[fieldName] > max) {
+            max = equity[fieldName];
+          }
+          if (equity[fieldName] < min) {
+            min = equity[fieldName];
+          }
+          sum += equity[fieldName];
+          k++;
+        }
+      });
+      fieldNameToMaxMinAverage.set(fieldName, {
+        max: max,
+        min: min,
+        avg: sum / k,
+      });
     });
-    return equityViews;
+    return fieldNameToMaxMinAverage;
   }
 
   onSelectionModelChange(newSelectionModel) {
@@ -100,6 +217,28 @@ class Content extends Component {
   createDataGrid() {
     return this.isVisible() && !this.props.loadingEquities ? (
       <DataGrid
+        sx={{
+          '& .green': {
+            color: '#26a671',
+          },
+          '& .red': {
+            color: '#cc3431',
+          },
+        }}
+        getCellClassName={(params) => {
+          if (
+            params.value == null ||
+            params.value == FirezEquity.UNDEFINED_VALUE
+          ) {
+            return '';
+          } else if (this.state.fieldNamesToNormalize.includes(params.field)) {
+            const maxMinAvg = this.fieldNameToMaxMinAverage.get(params.field);
+            if (params.field != 'dividendYield') {
+              return params.value <= maxMinAvg.avg ? 'green' : 'red';
+            }
+            return params.value >= maxMinAvg.avg ? 'green' : 'red';
+          }
+        }}
         columns={this.columns}
         rows={this.rows}
         checkboxSelection={this.props.deletionMode}
@@ -146,7 +285,9 @@ class Content extends Component {
   }
 
   createDeleteButton() {
-    return this.isVisible() && this.props.deletionMode && this.state.equityIdsToDelete.size > 0 ? (
+    return this.isVisible() &&
+      this.props.deletionMode &&
+      this.state.equityIdsToDelete.size > 0 ? (
       <IconButton
         className="content-footer-button-wrapper"
         onClick={this.onDelete.bind(this)}
@@ -157,7 +298,9 @@ class Content extends Component {
   }
 
   createUpdateButton() {
-    return this.isVisible() && this.props.deletionMode && this.state.equityIdsToDelete.size > 0 ? (
+    return this.isVisible() &&
+      this.props.deletionMode &&
+      this.state.equityIdsToDelete.size > 0 ? (
       <IconButton
         className="content-footer-button-wrapper"
         onClick={this.onUpdate.bind(this)}
